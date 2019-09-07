@@ -124,9 +124,16 @@ func (t *tool) run(vOut io.Writer) {
 	}
 
 	if *fUpdate || notExists("go.mod") {
-		if err := exec.Command("go", "mod", "init", "tmpmod").Run(); err != nil {
+		// Ensure that gobin finds the latest version in the cache
+		// by creating the module, attempting to grab the latest,
+		// then dropping everything.
+		run("go", "mod", "init", "tmpmod")
+		runNoError("go", "get", "-d", t.name+"@latest")
+		if err := os.Remove("go.mod"); err != nil {
 			panic(err)
 		}
+
+		run("go", "mod", "init", "tmpmod")
 
 		for _, cmdline := range t.setup {
 			run("sh", "-c", cmdline)
@@ -214,6 +221,10 @@ func run(name string, args ...string) string {
 	}
 
 	return strings.TrimSpace(stdout.String())
+}
+
+func runNoError(name string, args ...string) {
+	_ = exec.Command(name, args...).Run()
 }
 
 func notExists(file string) bool {

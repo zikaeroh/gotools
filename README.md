@@ -33,12 +33,10 @@ github.com/golangci/golangci-lint/cmd/golangci-lint
     run go mod edit -replace github.com/golangci/ineffassign=github.com/golangci/ineffassign@v0.0.0-20190609212857-42439a7714cc
     run go mod edit -replace github.com/golangci/lint-1=github.com/golangci/lint-1@v0.0.0-20190420132249-ee948d087217
     run go mod edit -replace mvdan.cc/unparam=mvdan.cc/unparam@v0.0.0-20190209190245-fbb59629db34
-    run go mod tidy
 
 # Use master of gopls
 golang.org/x/tools/gopls
     run GOPROXY=direct go get golang.org/x/tools{,/gopls}@master
-    run go mod tidy
 ```
 
 Will populate `$GOBIN` with all of the above listed tools, pinning them using modules stored in `~/.config/gotools/mods`.
