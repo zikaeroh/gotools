@@ -42,3 +42,8 @@ golang.org/x/tools/gopls
 Will populate `$GOBIN` with all of the above listed tools, pinning them using modules stored in `~/.config/gotools/mods`.
 
 Use `gotools -update` to delete all of the pinned versions and create them fresh.
+
+
+## Disclaimer
+
+This is still a WIP. There's some goofyness around `-update` which prevents updates from happening sometimes.
