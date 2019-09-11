@@ -112,7 +112,7 @@ func (t *tool) parse(line string) (next bool) {
 func (t *tool) run(vOut io.Writer) {
 	mkdirCd(t.tmpMod)
 
-	hasGoMod := !exists("go.mod")
+	hasGoMod := exists("go.mod")
 
 	var oldVer string
 	if hasGoMod {
