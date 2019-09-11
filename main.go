@@ -135,7 +135,7 @@ func (t *tool) run(vOut io.Writer) {
 
 	fmt.Fprintf(vOut, "%s %s\n", t.name, ver)
 
-	if oldVer == "" {
+	if oldVer == "" || oldVer == ver {
 		fmt.Printf("%s %s\n", t.name, ver)
 	} else {
 		fmt.Printf("%s %s -> %s\n", t.name, oldVer, ver)
