@@ -12,12 +12,7 @@ import (
 	"strings"
 )
 
-const gobin = "github.com/myitcv/gobin"
-
-var (
-	binDir    = getBinDir()
-	configDir = getConfigDir()
-)
+var configDir = getConfigDir()
 
 var (
 	fUpdate   = flag.Bool("update", false, "update tools instead of just installing them")
@@ -47,8 +42,6 @@ func main() {
 		panic(err)
 	}
 	defer vf.Close()
-
-	installGobin(vf)
 
 	scanner := bufio.NewScanner(f)
 
@@ -85,18 +78,24 @@ func main() {
 }
 
 type tool struct {
-	name  string
-	mod   string
-	tags  string
-	setup []string
-	goRun bool
+	name   string
+	verReq string
+	tmpMod string
+	tags   string
+	setup  []string
 }
 
 func newTool(name string) *tool {
+	name, ver := splitFirstSep(name, "@")
+	if ver == "" {
+		ver = "latest"
+	}
+
 	mod := strings.ReplaceAll(name, "/", "_")
 	return &tool{
-		name: name,
-		mod:  filepath.Join(*fMods, mod),
+		name:   name,
+		verReq: ver,
+		tmpMod: filepath.Join(*fMods, mod),
 	}
 }
 
@@ -118,22 +117,14 @@ func (t *tool) parse(line string) (next bool) {
 }
 
 func (t *tool) run(vOut io.Writer) {
-	mkdir(t.mod)
-	if err := os.Chdir(t.mod); err != nil {
+	mkdir(t.tmpMod)
+	if err := os.Chdir(t.tmpMod); err != nil {
 		panic(err)
 	}
 
 	if *fUpdate || notExists("go.mod") {
-		// Ensure that gobin finds the latest version in the cache
-		// by creating the module, attempting to grab the latest,
-		// then dropping everything.
 		run("go", "mod", "init", "tmpmod")
-		runNoError("go", "get", "-d", t.name+"@latest")
-		if err := os.Remove("go.mod"); err != nil {
-			panic(err)
-		}
-
-		run("go", "mod", "init", "tmpmod")
+		run("go", "get", "-d", t.name+"@"+t.verReq)
 
 		for _, cmdline := range t.setup {
 			run("sh", "-c", cmdline)
@@ -147,41 +138,19 @@ func (t *tool) run(vOut io.Writer) {
 }
 
 func (t *tool) install() {
-	binPath := t.runCmd("-p")
-	run("cp", "-f", binPath, binDir+string(os.PathSeparator))
+	run("go", "install", "-tags", t.tags, t.name)
 }
 
 func (t *tool) version() string {
-	_, ver := splitSpace(t.runCmd("-v"))
-	return ver
-}
-
-func (t *tool) cmd(flags ...string) (name string, args []string) {
-	name = "gobin"
-	if t.goRun {
-		name = "go"
-		args = []string{"run", gobin}
-	}
-
-	args = append(args, "-m")
-
-	if t.tags != "" {
-		args = append(args, "-tags", t.tags)
-	}
-
-	args = append(args, flags...)
-	args = append(args, t.name)
-
-	return name, args
-}
-
-func (t *tool) runCmd(flags ...string) string {
-	name, args := t.cmd(flags...)
-	return run(name, args...)
+	return run("go", "list", "-f", "{{.Module.Version}}", t.name)
 }
 
 func splitSpace(s string) (l string, r string) {
-	parts := strings.SplitN(s, " ", 2)
+	return splitFirstSep(s, " ")
+}
+
+func splitFirstSep(s string, sep string) (l string, r string) {
+	parts := strings.SplitN(s, sep, 2)
 	switch len(parts) {
 	case 0:
 		return "", ""
@@ -190,14 +159,6 @@ func splitSpace(s string) (l string, r string) {
 	default:
 		return parts[0], strings.TrimSpace(parts[1])
 	}
-}
-
-func installGobin(vOut io.Writer) {
-	_, err := exec.LookPath("gobin")
-
-	t := newTool(gobin)
-	t.goRun = err != nil
-	t.run(vOut)
 }
 
 func mkdir(path string) {
@@ -223,32 +184,9 @@ func run(name string, args ...string) string {
 	return strings.TrimSpace(stdout.String())
 }
 
-func runNoError(name string, args ...string) {
-	_ = exec.Command(name, args...).Run()
-}
-
 func notExists(file string) bool {
 	_, err := os.Stat(file)
 	return os.IsNotExist(err)
-}
-
-func getBinDir() string {
-	v, ok := os.LookupEnv("GOBIN")
-	if ok {
-		return v
-	}
-
-	v, ok = os.LookupEnv("GOPATH")
-	if ok {
-		return filepath.Join(v, "bin")
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	return filepath.Join(home, "go", "bin")
 }
 
 func getConfigDir() string {
