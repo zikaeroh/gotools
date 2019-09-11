@@ -24,13 +24,6 @@ var (
 func main() {
 	flag.Parse()
 
-	if *fUpdate {
-		if err := os.RemoveAll(*fMods); err != nil {
-			panic(err)
-		}
-		mkdir(*fMods)
-	}
-
 	f, err := os.Open(*fConfig)
 	if err != nil {
 		panic(err)
@@ -117,12 +110,17 @@ func (t *tool) parse(line string) (next bool) {
 }
 
 func (t *tool) run(vOut io.Writer) {
-	mkdir(t.tmpMod)
-	if err := os.Chdir(t.tmpMod); err != nil {
-		panic(err)
+	mkdirCd(t.tmpMod)
+
+	hasGoMod := !exists("go.mod")
+
+	var oldVer string
+	if hasGoMod {
+		oldVer = t.version()
 	}
 
-	if *fUpdate || notExists("go.mod") {
+	if *fUpdate || !hasGoMod {
+		rm("go.mod")
 		run("go", "mod", "init", "tmpmod")
 		run("go", "get", "-d", t.name+"@"+t.verReq)
 
@@ -132,9 +130,16 @@ func (t *tool) run(vOut io.Writer) {
 	}
 
 	t.install()
-	ver := t.name + " " + t.version()
-	fmt.Println(ver)
-	fmt.Fprintln(vOut, ver)
+
+	ver := t.version()
+
+	fmt.Fprintf(vOut, "%s %s\n", t.name, ver)
+
+	if oldVer == "" {
+		fmt.Printf("%s %s\n", t.name, ver)
+	} else {
+		fmt.Printf("%s %s -> %s\n", t.name, oldVer, ver)
+	}
 }
 
 func (t *tool) install() {
@@ -161,12 +166,6 @@ func splitFirstSep(s string, sep string) (l string, r string) {
 	}
 }
 
-func mkdir(path string) {
-	if err := os.MkdirAll(path, 0700); err != nil {
-		panic(err)
-	}
-}
-
 func run(name string, args ...string) string {
 	cmd := exec.Command(name, args...)
 	var stdout bytes.Buffer
@@ -184,9 +183,24 @@ func run(name string, args ...string) string {
 	return strings.TrimSpace(stdout.String())
 }
 
-func notExists(file string) bool {
+func mkdirCd(path string) {
+	if err := os.MkdirAll(path, 0700); err != nil {
+		panic(err)
+	}
+	if err := os.Chdir(path); err != nil {
+		panic(err)
+	}
+}
+
+func exists(file string) bool {
 	_, err := os.Stat(file)
-	return os.IsNotExist(err)
+	return err == nil
+}
+
+func rm(file string) {
+	if err := os.Remove(file); err != nil {
+		panic(err)
+	}
 }
 
 func getConfigDir() string {
