@@ -6,19 +6,23 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/rogpeppe/go-internal/modfile"
 )
 
 var configDir = getConfigDir()
 
 var (
-	fUpdate   = flag.Bool("update", false, "update tools instead of just installing them")
-	fConfig   = flag.String("config", configDirFor("config"), "config file")
-	fMods     = flag.String("mods", configDirFor("mods"), "module configuration directory")
-	fVersions = flag.String("versions", configDirFor("versions"), "versions output file")
+	fUpdate      = flag.Bool("update", false, "update tools instead of just installing them")
+	fConfig      = flag.String("config", configDirFor("config"), "config file")
+	fMods        = flag.String("mods", configDirFor("mods"), "module configuration directory")
+	fVersions    = flag.String("versions", configDirFor("versions"), "versions output file")
+	fCopyReplace = flag.Bool("copyreplace", true, "copy replacements from tool's go.mod")
 )
 
 func main() {
@@ -123,6 +127,29 @@ func (t *tool) run(vOut io.Writer) {
 		rm("go.mod")
 		run("go", "mod", "init", "tmpmod")
 		run("go", "get", "-d", t.name+"@"+t.verReq)
+
+		if *fCopyReplace {
+			if toolMod := run("go", "list", "-f", `{{.Module.GoMod}}`, t.name); toolMod != "" {
+				data, err := ioutil.ReadFile(toolMod)
+				if err != nil {
+					panic(err)
+				}
+
+				mf, err := modfile.Parse(toolMod, data, nil)
+				if err != nil {
+					panic(err)
+				}
+
+				for _, replace := range mf.Replace {
+					if strings.Contains(replace.New.Path, "..") {
+						continue
+					}
+
+					replacement := fmt.Sprintf("%s=%s@%s", replace.Old.Path, replace.New.Path, replace.New.Version)
+					run("go", "mod", "edit", "-replace", replacement)
+				}
+			}
+		}
 
 		for _, cmdline := range t.setup {
 			run("sh", "-c", cmdline)

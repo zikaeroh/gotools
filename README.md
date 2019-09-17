@@ -23,10 +23,7 @@ github.com/go-delve/delve/cmd/dlv
 mvdan.cc/gofumpt
 mvdan.cc/gofumpt/gofumports
 
-github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
-    run go mod edit -replace github.com/ultraware/funlen=github.com/golangci/funlen@v0.0.0-20190909161642-5e59b9546114
-    run go mod edit -replace golang.org/x/tools=github.com/golangci/tools@3540c026601b
-    run go mod download
+github.com/golangci/golangci-lint/cmd/golangci-lint
 
 golang.org/x/tools/gopls@master
     run go get -d golang.org/x/tools@master
@@ -36,6 +33,7 @@ Will populate `$GOBIN` with all of the above listed tools, pinning them using mo
 
 Use `gotools -update` to delete all of the pinned versions and create them fresh.
 
+By default, `gotools` will copy the replacements from the tool's `go.mod`. Pass `-copyreplace=false` to disable this behavior.
 
 ## Disclaimer
 
