@@ -225,7 +225,7 @@ func exists(file string) bool {
 }
 
 func rm(file string) {
-	if err := os.Remove(file); err != nil {
+	if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
 		panic(err)
 	}
 }
