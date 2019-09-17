@@ -85,7 +85,7 @@ type tool struct {
 func newTool(name string) *tool {
 	name, ver := splitFirstSep(name, "@")
 	if ver == "" {
-		ver = "latest"
+		ver = "upgrade"
 	}
 
 	mod := strings.ReplaceAll(name, "/", "_")
