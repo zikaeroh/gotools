@@ -125,6 +125,7 @@ func (t *tool) run(vOut io.Writer) {
 
 	if *fUpdate || !hasGoMod {
 		rm("go.mod")
+		rm("go.sum")
 		run("go", "mod", "init", "tmpmod")
 		run("go", "get", "-d", t.name+"@"+t.verReq)
 
