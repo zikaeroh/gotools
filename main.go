@@ -123,6 +123,8 @@ func (t *tool) run(vOut io.Writer) {
 		oldVer = t.version()
 	}
 
+	t.writeToolsGo()
+
 	if *fUpdate || !hasGoMod {
 		rm("go.mod")
 		rm("go.sum")
@@ -155,6 +157,8 @@ func (t *tool) run(vOut io.Writer) {
 		for _, cmdline := range t.setup {
 			run("sh", "-c", cmdline)
 		}
+
+		run("go", "mod", "tidy")
 	}
 
 	t.install()
@@ -176,6 +180,29 @@ func (t *tool) install() {
 
 func (t *tool) version() string {
 	return run("go", "list", "-f", "{{.Module.Version}}", t.name)
+}
+
+const toolsGo = `// +build tools
+
+package tools
+
+import _ "%s"
+`
+
+func (t *tool) writeToolsGo() {
+	if exists("tools.go") {
+		return
+	}
+
+	f, err := os.Create("tools.go")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	if _, err := fmt.Fprintf(f, toolsGo, t.name); err != nil {
+		panic(err)
+	}
 }
 
 func splitSpace(s string) (l string, r string) {
