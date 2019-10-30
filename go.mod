@@ -1,5 +1,5 @@
 module github.com/zikaeroh/gotools
 
-go 1.11
+go 1.12
 
-require github.com/rogpeppe/go-internal v1.3.2
+require golang.org/x/mod v0.1.1-0.20191029194233-18c3998b6452
