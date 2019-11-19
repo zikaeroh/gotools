@@ -89,6 +89,10 @@ func main() {
 		}(i)
 	}
 
+	if err := sem.Acquire(context.Background(), *fWorkers); err != nil {
+		log.Fatal(err)
+	}
+
 	vf, err := os.Create(*fVersions)
 	if err != nil {
 		log.Fatal("error creating version file", err)
