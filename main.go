@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"golang.org/x/mod/modfile"
@@ -66,6 +67,10 @@ func main() {
 	if curr != nil {
 		tools = append(tools, curr)
 	}
+
+	sort.Slice(tools, func(i, j int) bool {
+		return tools[i].name < tools[j].name
+	})
 
 	versions := make([]string, len(tools))
 
