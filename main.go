@@ -248,8 +248,12 @@ func (t *tool) run() error {
 	return nil
 }
 
-func (t *tool) install() error {
-	_, err := t.wd.run("go", "install", "-tags", t.tags, t.name)
+func (t *tool) install() (err error) {
+	if t.tags == "" {
+		_, err = t.wd.run("go", "install", t.name)
+	} else {
+		_, err = t.wd.run("go", "install", "-tags", t.tags, t.name)
+	}
 	return err
 }
 
