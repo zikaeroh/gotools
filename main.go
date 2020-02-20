@@ -30,6 +30,19 @@ var (
 	fWorkers     = flag.Int64("workers", int64(runtime.GOMAXPROCS(0))+1, "number of concurrent workers")
 )
 
+func getConfigDir() string {
+	p, err := os.UserConfigDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	return filepath.Join(p, "gotools")
+}
+
+func configDirFor(x string) string {
+	return filepath.Join(configDir, x)
+}
+
 func main() {
 	flag.Parse()
 
@@ -168,7 +181,9 @@ func (t *tool) run() error {
 		}
 	}
 
-	t.writeToolsGo()
+	if err := t.writeToolsGo(); err != nil {
+		return err
+	}
 
 	if *fUpdate || !hasGoMod {
 		if err := t.wd.rm("go.mod"); err != nil {
@@ -196,12 +211,12 @@ func (t *tool) run() error {
 			if toolMod != "" {
 				data, err := ioutil.ReadFile(toolMod)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				mf, err := modfile.Parse(toolMod, data, nil)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				for _, replace := range mf.Replace {
@@ -268,20 +283,19 @@ package tools
 import _ "%s"
 `
 
-func (t *tool) writeToolsGo() {
+func (t *tool) writeToolsGo() error {
 	if t.wd.contains("tools.go") {
-		return
+		return nil
 	}
 
 	f, err := t.wd.create("tools.go")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer f.Close()
 
-	if _, err := fmt.Fprintf(f, toolsGo, t.name); err != nil {
-		panic(err)
-	}
+	_, err = fmt.Fprintf(f, toolsGo, t.name)
+	return err
 }
 
 func splitSpace(s string) (l string, r string) {
@@ -340,16 +354,4 @@ func (w workingDir) rm(filename string) error {
 func (w workingDir) create(filename string) (*os.File, error) {
 	filename = filepath.Join(string(w), filename)
 	return os.Create(filename)
-}
-
-func getConfigDir() string {
-	p, err := os.UserConfigDir()
-	if err != nil {
-		panic(err)
-	}
-	return filepath.Join(p, "gotools")
-}
-
-func configDirFor(x string) string {
-	return filepath.Join(configDir, x)
 }
