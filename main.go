@@ -6,7 +6,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -209,7 +208,7 @@ func (t *tool) run() error {
 			}
 
 			if toolMod != "" {
-				data, err := ioutil.ReadFile(toolMod)
+				data, err := os.ReadFile(toolMod)
 				if err != nil {
 					return err
 				}
@@ -340,7 +339,7 @@ func (w workingDir) contains(filename string) bool {
 }
 
 func (w workingDir) mkdir() error {
-	return os.MkdirAll(string(w), 0700)
+	return os.MkdirAll(string(w), 0o700)
 }
 
 func (w workingDir) rm(filename string) error {
